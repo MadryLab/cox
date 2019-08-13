@@ -1,5 +1,5 @@
 # Cox: An experimental design and analysis framework
-You can find API Documentation on `cox` [here](https://cox.readthedocs.io), along with a copy of the
+You can find API Documentation on Cox [here](https://cox.readthedocs.io), along with a copy of the
 Walkthrough below.
 
 ## Introduction
