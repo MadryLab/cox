@@ -11,7 +11,7 @@ Engstrom](https://twitter.com/logan_engstrom) and [Andrew
 Ilyas](https://twitter.com/andrew_ilyas). 
 
 Cox works by helping you easily __log__, __collect__, and
-__analyze experimental__ results. For API documentation, see [here](https://cox.readthedocs.io); below, we
+__analyze__ experimental results. For API documentation, see [here](https://cox.readthedocs.io); below, we
 provide a walkthrough that illustrates the most important features of Cox.
 
 __Why "Cox"? (Aside)__: The name Cox draws both from
