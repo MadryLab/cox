@@ -106,6 +106,11 @@ class Parameters():
         return self.params[k]
 
     def __setattr__(self, x, v):
+        # Fix for some back-compatibility with some pickling bugs
+        if x == 'params':
+            super().__setattr__(x, b)
+            return
+
         if x in vars(self):
             vars(self)[x.lower()] = v
 
