@@ -9,7 +9,8 @@ class CollectionReader:
     '''
     Class for collecting, viewing, and manipulating directories of stores.
     '''
-    def __init__(self, directory, log_warnings=True, mode='r', exp_filter=None):
+    def __init__(self, directory, log_warnings=True, mode='r', exp_filter=None,
+                    skip_errs=False):
         '''Initialize the CollectionReader object. This will immediately open
         each store in `directory` and see which table are available for viewing.
 
@@ -31,20 +32,25 @@ class CollectionReader:
         self.directory = directory
 
         for exp_id in tqdm.tqdm(os.listdir(directory)):
-            if exp_filter is not None and not exp_filter(exp_id):
-                continue
-            store_path = os.path.join(directory, exp_id, STORE_BASENAME)
-            if not os.path.exists(store_path):
-                continue
+            try:
+                if exp_filter is not None and not exp_filter(exp_id):
+                    continue
+                store_path = os.path.join(directory, exp_id, STORE_BASENAME)
+                if not os.path.exists(store_path):
+                    continue
 
-            store = Store(self.directory, exp_id, new=False, mode='r')
-            self.stores[exp_id] = store
-            this_table_list = set(store.tables.keys())
-            for i in this_table_list:
-                self.schemas[i] = store[i].schema
+                store = Store(self.directory, exp_id, new=False, mode='r')
+                self.stores[exp_id] = store
+                this_table_list = set(store.tables.keys())
+                for i in this_table_list:
+                    self.schemas[i] = store[i].schema
 
-            table_list |= this_table_list
-            #store.close()
+                table_list |= this_table_list
+            except Exception as e:
+                if skip_errs:
+                    print(f"Error on exp_id {exp_id}")
+                else:
+                    raise e
 
         self.tables = table_list
 
