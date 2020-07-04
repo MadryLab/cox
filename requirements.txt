@@ -12,7 +12,7 @@ numpy == 1.15.0
 # generator.py: 3
 # readers.py: 1
 # store.py: 1,20
-pandas == 0.21.0
+pandas == 1.0.5
 
 # store.py: 9
 tensorboard_pytorch == 0.7.1
