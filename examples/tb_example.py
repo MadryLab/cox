@@ -38,6 +38,6 @@ if __name__ == "__main__":
 
     print("Starting tensorboard:")
     subprocess.run(["python", "-m", "cox.tensorboard_view", "--logdir",
-        "OUT_DIR", "--format-str", "slope-{slope}", "--filter-param", "slope",
+        f"{OUT_DIR}", "--format-str", "slope-{slope}", "--filter-param", "slope",
         "[1-3]", "--metadata-table", "metadata"])
 
