@@ -51,7 +51,7 @@ def main():
         except ValueError as ve:
             pass
     
-    cmd_to_run = f"tensorboard --logdir {tensorboard_arg_str} --port {args.port}"
+    cmd_to_run = f"tensorboard --logdir_spec {tensorboard_arg_str} --port {args.port}"
     print(f"Running '{cmd_to_run}'")
     os.system(cmd_to_run)
 
