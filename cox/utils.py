@@ -5,6 +5,7 @@ import os
 import dill as pickle
 import codecs
 import itertools
+import pprint 
 
 def has_tensorboard(dirname):
     '''
@@ -126,7 +127,8 @@ class Parameters():
         return len(self.params)
 
     def __str__(self):
-        return json.dumps(self.params, indent=2)
+        pp = pprint.PrettyPrinter()
+        return pp.pformat(self.params)
 
     def __repr__(self):
         return str(self)
