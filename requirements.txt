@@ -3,19 +3,19 @@
 
 # store.py: 4
 # utils.py: 2
-dill == 0.2.8.2
+dill
 
 # store.py: 3
 # tests.py: 4
-numpy >= 1.15.0
+numpy
 
 # generator.py: 3
 # readers.py: 1
 # store.py: 1,20
-pandas >= 1.0.5
+pandas
 
 # store.py: 9
-tensorboard_pytorch >= 0.7.1
+tensorboard_pytorch
 
 # store.py: 2
 torch
