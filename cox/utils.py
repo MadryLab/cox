@@ -1,13 +1,10 @@
-import argparse
 import json
-from collections import namedtuple
 import os
 import dill as pickle
 import codecs
-import itertools
 
 def has_tensorboard(dirname):
-    '''
+    """
     Given a directory path, return whether or not it has a tensorboard directory
     in it.
 
@@ -16,24 +13,24 @@ def has_tensorboard(dirname):
 
     Returns:
         Whether or not the directory has a "tensorboard" folder in it.
-    '''
+    """
     if not os.path.isdir(dirname):
         return False
     return 'tensorboard' in os.listdir(dirname)
 
 def consistent(old, new):
-    '''
+    """
     Asserts that either first argument is None or
     both arguments are equal, and returns the non-None
     argument.
-    '''
+    """
     if old is None:
         return new
     assert old == new
     return old
 
 def override_json(args, json_path, check_consistency=False):
-    '''
+    """
     Overrides the null values in an arguments object with values extracted from
     a JSON file.
 
@@ -44,7 +41,7 @@ def override_json(args, json_path, check_consistency=False):
             file and the args object match up exactly
     Returns:
         A new args object with appropriately overriden None values.
-    '''
+    """
     json_params = json.load(open(json_path))
 
     params = args.as_dict()
@@ -73,15 +70,15 @@ def override_json(args, json_path, check_consistency=False):
     args = Parameters(params)
     return args
 
-class Parameters():
-    '''
+class Parameters:
+    """
     Parameters class, just a nice way of accessing a dictionary
 
     .. code-block:: python
 
         ps = Parameters({"a": 1, "b": 3})
         ps.A # returns 1
-    '''
+    """
     def __init__(self, params):
         super().__setattr__('params', params)
 
@@ -141,10 +138,10 @@ class Parameters():
         self.params = x
 
 def mkdirp(x, should_msg=False):
-    '''
+    """
     Tries to make a directory, but doesn't error if the
     directory exists/can't be created.
-    '''
+    """
     try:
         os.makedirs(x)
     except Exception as e:
@@ -153,15 +150,15 @@ def mkdirp(x, should_msg=False):
             Exact message was %s" % (e.message,))
 
 def obj_to_string(obj):
-    '''
+    """
     Serialize an object to a string
-    '''
+    """
     return codecs.encode(pickle.dumps(obj), "base64").decode()
 
 def string_to_obj(s):
-    '''
+    """
     Unserialize a string back into an object.
-    '''
+    """
     if s is None or s == "":
         return None
     if not isinstance(s, str):

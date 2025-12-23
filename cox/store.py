@@ -1,7 +1,7 @@
 import pandas as pd
 import torch as ch
 import numpy as np
-import dill as pickle
+import shutil
 from uuid import uuid4
 from .utils import *
 import os
@@ -21,8 +21,9 @@ pd.set_option('io.hdf.default_format','table')
 from pandas.io.pytables import PerformanceWarning
 warnings.simplefilter(action="ignore", category=PerformanceWarning)
 
-class Store():
-    '''Serializes and saves data from experiment runs. Automatically makes a
+class Store:
+    """
+    Serializes and saves data from experiment runs. Automatically makes a
     tensorboard. Access the tensorboard field, and refer to the TensorboardX
     documentation for more information about how to manipulate it (it is a
     tensorboardX object).
@@ -41,26 +42,26 @@ class Store():
     using the static methods found in the :class:`~cox.store.Table` class
     (``get_pytorch_state``, ``get_object``, ``get_pickle``), or use a
     :class:`cox.readers.CollectionReader` which will handle this for you.
-    '''
+    """
 
     OBJECT = OBJECT
-    '''
+    """
     Python serialized datatype (saved as string in the h5 table---not
     recommended for large objects as these objects must be loaded along with the
     table)
-    '''
+    """
     PICKLE = PICKLE
-    '''
+    """
     Pickle datatype (saved on disk and referenced from the table---recommended
     for larger objects)
-    '''
+    """
     PYTORCH_STATE = PYTORCH_STATE
-    '''
+    """
     PyTorch state, e.g. from model.state_dict() (saved on disk and linked)
-    '''
+    """
 
     def __init__(self, storage_folder, exp_id=None, new=False, mode='a'):
-        '''
+        """
         Make new experiment store in ``storage_folder``, within its subdirectory
         ``exp_id`` (if not none). If an experiment exists already with this
         corresponding directory, open it for reading.
@@ -70,11 +71,11 @@ class Store():
                 with all our experiment data (this store).
             exp_id (str) : dir name in ``storage_folder`` under which we will
                 store experimental data.
-            new (str): enforce that this store has never been created before.
+            new (bool): enforce that this store has never been created before.
             mode (str) : mode for accessing tables. a is append only, r is read
                 only, w is write.
 
-        '''
+        """
         if not exp_id:
             exp_id = str(uuid4())
 
@@ -108,9 +109,9 @@ class Store():
         self.keys = self.tables.keys()
 
     def close(self):
-        '''
+        """
         Closes underlying HDFStore of this store.
-        '''
+        """
         self.store.close()
 
     def __str__(self):
@@ -123,7 +124,7 @@ class Store():
         return '\n'.join(s)
 
     def get_table(self, table_id):
-        '''
+        """
         Gets table with key ``table_id``.
 
         Args:
@@ -131,11 +132,11 @@ class Store():
 
         Returns:
             The corresponding table (Table object).
-        '''
+        """
         return self.tables[table_id]
 
     def __getitem__(self, table_id):
-        '''
+        """
         Gets table with key ``table_id``.
 
         Args:
@@ -143,11 +144,11 @@ class Store():
 
         Returns:
             The corresponding table (Table object).
-        '''
+        """
         return self.get_table(table_id)
 
     def add_table(self, table_name, schema):
-        '''
+        """
         Add a new table to the experiment.
 
         Args:
@@ -159,13 +160,13 @@ class Store():
 
         Returns:
             The table object of the new table.
-        '''
+        """
         table = Table(table_name, schema, self._table_object_dir, self.store)
         self.tables[table_name] = table
         return table
 
     def add_table_like_example(self, table_name, example, alternative=OBJECT):
-        '''
+        """
         Add a new table to the experiment, using an example dictionary as the
         basis for the types of the columns.
 
@@ -176,12 +177,12 @@ class Store():
                 objects in the dictionary.
             alternative (self.OBJECT|self.PICKLE|self.PYTORCH_STATE) : how to
                 store columns that are python objects.
-        '''
+        """
         schema = schema_from_dict(example, alternative=alternative)
         return self.add_table(table_name, schema)
 
     def log_table_and_tb(self, table_name, update_dict, summary_type='scalar'):
-        '''
+        """
         Log to a table and also a tensorboard.
 
         Args:
@@ -189,7 +190,7 @@ class Store():
             update_dict (dict) : values to log and store as a dictionary of
                 column mapping to value.
             summary_type (str) : what type of summary to log to tensorboard as
-        '''
+        """
 
         table = self.tables[table_name]
         update_dict = _clean_dict(update_dict, table.schema)
@@ -202,12 +203,64 @@ class Store():
 
         table.update_row(update_dict)
 
-class Table():
-    '''
+    def snapshot_copy(self):
+        """
+        Closes the HDF5 store, copies it to a new file with the given suffix,
+        then reopens the original store for continued use.
+        """
+        original_store_path = self.store.filename
+        mode = self.store._mode
+
+        original_folder = original_store_path.replace("store.h5", "").rstrip("/")
+        snapshot_folder = original_folder + "_snapshot"
+        os.makedirs(snapshot_folder, exist_ok=True)
+
+        original_store_path = os.path.join(original_folder, "store.h5")
+        snapshot_store_path = os.path.join(snapshot_folder, "store.h5")
+
+        self.store.close()
+        shutil.copy2(original_store_path, snapshot_store_path)
+        self.store = pd.HDFStore(original_store_path, mode=mode)
+
+        # Refresh the tables to point to the new store
+        self.tables = Table._tables_from_store(self.store, self._table_object_dir)
+        self.keys = self.tables.keys()
+
+        return snapshot_store_path
+
+    @staticmethod
+    def split_storage_exp_paths(full_path):
+        full_path = full_path.rstrip("/")
+        return "/".join(full_path.split("/")[:-1]), full_path.split("/")[-1]
+
+    @classmethod
+    def read_from_running(cls, storage_folder, exp_id=None):
+        """
+        Creates a read-only Store instance that reads from the snapshot copy.
+        """
+        if exp_id is None:
+            storage_folder, exp_id = Store.split_storage_exp_paths(storage_folder)
+
+        # Create the snapshot store instance
+        snapshot_store = cls(storage_folder, exp_id=f"{exp_id}_snapshot", new=False, mode='r')
+
+        # Override the table object directory to point to the original location
+        original_table_obj_dir = os.path.join(storage_folder, exp_id, TABLE_OBJECT_DIR)
+        snapshot_store._table_object_dir = original_table_obj_dir
+
+        # Refresh the tables to use the original table object directory
+        snapshot_store.tables = Table._tables_from_store(snapshot_store.store, original_table_obj_dir)
+        snapshot_store.keys = snapshot_store.tables.keys()
+
+        return snapshot_store
+
+class Table:
+    """
     A class representing a single storer table, to be written to by
     the experiment. This is essentially a single HDFStore table.
-    '''
+    """
 
+    @staticmethod
     def _tables_from_store(store, table_obj_dir):
         tables = {}
         for key in store.keys():
@@ -229,7 +282,7 @@ class Table():
 
     def __init__(self, name, schema, table_obj_dir, store,
                  has_initialized=False):
-        '''
+        """
         Create a new Table object.
 
         Args:
@@ -239,7 +292,7 @@ class Table():
             table_obj_dir (str) : where to store serialized objects on disk
                 store (Store) : parent store.
             has_initialized (bool) : has this table been created yet.
-        '''
+        """
         self._name = name
         self._schema = schema
         self._HDFStore = store
@@ -251,9 +304,9 @@ class Table():
 
     @property
     def df(self):
-        '''
+        """
         Access the underlying pandas dataframe for this table.
-        '''
+        """
         if self._has_initialized:
             return self._HDFStore[self._name]
         else:
@@ -261,16 +314,16 @@ class Table():
 
     @property
     def schema(self):
-        '''
+        """
         Access the underlying schema for this table.
-        '''
+        """
         return dict(self._schema)
 
     @property
     def nrows(self):
-        '''
+        """
         How many rows this table has.
-        '''
+        """
         if self._has_initialized:
             return self._HDFStore.get_storer(self._name).nrows
         else:
@@ -285,13 +338,13 @@ class Table():
         self._has_initialized = True
 
     def append_row(self, data):
-        '''
+        """
         Write a dictionary with format column name:value as a row to the table.
         Must have a value for each column. See :meth:`~cox.store.Store.update_row` for more mechanics.
 
         Args:
             data (dict) : dictionary with format ``column name``:``value``.
-        '''
+        """
         self.update_row(data)
         self.flush_row()
 
@@ -302,7 +355,7 @@ class Table():
         self._curr_row_data = curr_row_dict
 
     def update_row(self, data):
-        '''
+        """
         Update the currently considered row in the data store. Our database is
         append only using the :class:`cox.store.Table` API. We can update this single row as much
         as we desire, using column:value mappings in ``data``. Eventually, the
@@ -318,7 +371,7 @@ class Table():
 
         Args:
             data (dict) : a dictionary with format ``column name``:``value``.
-        '''
+        """
         # Data sanity checks
         assert self._curr_row_data is not None
         assert len(set(data.keys())) == len(data.keys())
@@ -348,13 +401,13 @@ class Table():
             self._curr_row_data[k] = to_store
 
     def get_pickle(self, uid):
-        '''
+        """
         Unserialize object of store.PICKLE type (a pickled object stored as a
         string on disk).
 
         Args:
             uid (str) : identifier corresponding to stored object in the table.
-        '''
+        """
         fname = os.path.join(self._table_obj_dir, uid)
         with open(fname, 'rb') as f:
             obj = pickle.load(f)
@@ -362,32 +415,32 @@ class Table():
         return obj
 
     def get_state_dict(self, uid, **kwargs):
-        '''
+        """
         Unserialize object of store.PYTORCH_STATE type (object stored using
         pytorch's serialization system).
 
         Args:
             uid (str) : identifier corresponding to stored object in the table.
-        '''
+        """
         fname = os.path.join(self._table_obj_dir, uid)
         kwargs['pickle_module'] = pickle
         return ch.load(fname, **kwargs)
 
     def get_object(self, s):
-        '''
+        """
         Unserialize object of store.OBJECT type (a pickled object stored as a
         string in the table).
 
         Args:
             s (str) : pickle string to unpickle into a python object.
-        '''
+        """
         return string_to_obj(s)
 
     def flush_row(self):
-        '''
+        """
         Writes the current row we have staged (using :meth:`~cox.store.Table.update_row`) to the table.
         Another row is immediately staged for :meth:`~cox.store.Table.update_row` to act on.
-        '''
+        """
         self._curr_row_data = _clean_dict(self._curr_row_data, self._schema)
 
         for k in self._schema:
@@ -422,7 +475,7 @@ class Table():
         self._create_row()
 
 def schema_from_dict(d, alternative=OBJECT):
-    '''
+    """
     Given a dictionary mapping column names to values, make a corresponding
     schema.
 
@@ -430,8 +483,8 @@ def schema_from_dict(d, alternative=OBJECT):
         d (dict) : dict of values we are going to infer the schema from
         alternative (self.OBJECT|self.PICKLE|self.PYTORCH_STATE) : how to
             store columns that are python objects.
-    '''
-    natural_types = set([int, str, float, bool])
+    """
+    natural_types = {int, str, float, bool}
     schema = {}
     for k, v in d.items():
         t = type(v)

@@ -1,22 +1,21 @@
 from .readers import CollectionReader
 from .utils import has_tensorboard
 from argparse import ArgumentParser
-import subprocess
 import os
 from os.path import join
 import re
 #http://localhost:8001/source/examples/2.html#walkthrough-2-using-cox-with-tensorboardx
 
 def main():
-    '''
+    """
     This function is meant to be run via command line (see
     `Walkthrough 2 <https://cox.readthedocs.io/en/latest/examples/2.html>`_ for more information.
-    '''
+    """
     parser = ArgumentParser(description='Helper script for starting interpretable tensorboard sessions.')
     parser.add_argument('--logdir', type=str, required=True, help="logdir (Same as tensorboard)")
     parser.add_argument('--port', type=int, required=False, default=6006, help="Port (passed on to tensorboard")
     parser.add_argument('--metadata-table', type=str, default="metadata", help="Name of the metadata table")
-    parser.add_argument('--format-str', type=str, required=True,  \
+    parser.add_argument('--format-str', type=str, required=True,
                     help="How to format the job name prefix (the suffix is always the uid)")
     parser.add_argument('--filter-param', action='append', nargs=2, help='Format: {parameter} {required value regex}')
     args = parser.parse_args()
@@ -46,9 +45,9 @@ def main():
                 params_to_fill[p] = param_value
             name_str = args.format_str.format(**params_to_fill) + "---" + exp_id
             tensorboard_arg_str += f"{name_str}:{join(args.logdir, exp_id)},"
-        except IndexError as ie:
+        except IndexError:
             print("Warning: Skipping experiment %s" % (exp_id,))
-        except ValueError as ve:
+        except ValueError:
             pass
     
     cmd_to_run = f"tensorboard --logdir_spec {tensorboard_arg_str} --port {args.port}"

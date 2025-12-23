@@ -2,16 +2,16 @@ import pandas as pd
 import os
 import tqdm
 
-from .store import STORE_BASENAME, Store, OBJECT, PICKLE
+from .store import STORE_BASENAME, Store, OBJECT
 
 ## collection tools
 class CollectionReader:
-    '''
+    """
     Class for collecting, viewing, and manipulating directories of stores.
-    '''
+    """
     def __init__(self, directory, log_warnings=True, mode='r', exp_filter=None,
                     skip_errs=False):
-        '''Initialize the CollectionReader object. This will immediately open
+        """Initialize the CollectionReader object. This will immediately open
         each store in `directory` and see which table are available for viewing.
 
         Args:
@@ -24,7 +24,7 @@ class CollectionReader:
                 or 'w' (write).
             exp_filter (method) : Call exp_filter on the experiment id of each
                 store, excludes store from collection if it returns `false`.
-        '''
+        """
         self.stores = {}
         table_list = set()
 
@@ -55,9 +55,9 @@ class CollectionReader:
         self.tables = table_list
 
     def close(self):
-        '''
+        """
         Closes all the stores opened by the collection reader.
-        '''
+        """
         for v in self.stores.values():
             v.close()
 
@@ -71,7 +71,7 @@ class CollectionReader:
 
     def df(self, key, append_exp_id=True, keep_serialized=[],
            union_schemas=False, exp_filter=None, skip_errors=False):
-        '''Makes a large concatenated PD dataframe from all the stores' tables
+        """Makes a large concatenated PD dataframe from all the stores' tables
         matching this table key.
 
         Args:
@@ -89,7 +89,7 @@ class CollectionReader:
 
         Returns: 
             Concatenated dataframe of all corresponding tables in the dataframes matching the key.
-        '''
+        """
         tables = []
         schema = None
 
@@ -120,10 +120,10 @@ class CollectionReader:
                         missing_schema_keys = set(schema.keys()) - set(this_schema.keys())
                         new_schema_keys = set(this_schema.keys()) - set(schema.keys())
 
-                        if (len(missing_schema_keys) == 0 and len(new_schema_keys) == 0):
+                        if len(missing_schema_keys) == 0 and len(new_schema_keys) == 0:
                             for k in this_schema:
                                 if this_schema[k] != schema[k]:
-                                    if set([this_schema[k], schema[k]]) == set([int, float]):
+                                    if {this_schema[k], schema[k]} == {int, float}:
                                         schema[k] = float
                         else:
                             tup = (missing_schema_keys, new_schema_keys)

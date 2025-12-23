@@ -7,15 +7,18 @@ dill == 0.2.8.2
 
 # store.py: 3
 # tests.py: 4
-numpy == 1.15.0
+numpy >= 1.15.0
 
 # generator.py: 3
 # readers.py: 1
 # store.py: 1,20
-pandas == 1.0.5
+pandas >= 1.0.5
 
 # store.py: 9
-tensorboard_pytorch == 0.7.1
+tensorboard_pytorch >= 0.7.1
 
 # store.py: 2
-torch == 0.4.0
+torch
+
+# tqdm
+tqdm
